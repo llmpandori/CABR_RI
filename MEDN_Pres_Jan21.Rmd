@@ -12,6 +12,7 @@ output:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+
 ## Lauren Pandori - Marine Biologist
 - PhD work on southern California mussel declines
 - Two postdocs: long-term monitoring and ocean acidification
