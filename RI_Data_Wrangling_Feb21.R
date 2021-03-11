@@ -17,24 +17,25 @@ library(wesanderson)
 library(PNWColors)
 library(ggdark)
 library(Hmisc)
+library(calecopal)
 
 ##### load data #####
 
 # owl limpet data (doesn't need alignment - spp consistent throughout)
-# lim_count <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_LIM_count.xlsx')
-# lim_density <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_LIM_density_bysize.xlsx')
-# lim_measure <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_LIM_measure.xlsx')
+# lim_count <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_count.xlsx')
+# lim_density <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_density_bysize.xlsx')
+# lim_measure <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_measure.xlsx')
 
 # transect data (doesn't need alignment - spp consistent throughout)
-phy_transect <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_PHY_bytransect.xlsx')
-phy_avg <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_PHY_totalavg.xlsx')
+phy_transect <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_PHY_bytransect.xlsx')
+phy_avg <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_PHY_totalavg.xlsx')
 
 # target data (needs alignment - spp lists differ by year)
-target <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_TGT.xlsx')
-target_raw <- read_excel('Raw Data/MEDN_RI_DB/qsummarizer_TGT_SppN_rawdata.xlsx')
+target <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_TGT.xlsx')
+target_raw <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_TGT_SppN_rawdata.xlsx')
 
 # alignment info for target data 
-align <- read_csv('TGT_all.csv')
+align <- read_csv('Raw Data/TGT_all.csv')
   # see RI_Species_Alighment_Feb21.R for methods
   # summary: took species lists for 1990 and 2000, applied to all unique spp.
 
@@ -244,11 +245,58 @@ ggplot(data = filter(cabrtransect, Zone == transectnames[1]),
   ggsave(paste('RI_Plots_Mar21/TRANSECT_Series_by_Plot_',zonelist[i], '.png', sep = ''))
 }
 
-##### summary vis: transect #####
+##### summary vis: photoplot #####
 
-# first plot spp of interest w/o summarizing (there are only 2 reps/zone)
+# no summarization
 
-  # time series
+# loop across target spp (except barnacles b/c they have 2 spp)
+
+# for barnacles (2 spp - cht/bal and tetrub)
+ggplot(data = filter(cabr1990, Zone == zonelist[1] & SpeciesCode %in% targetlist[1:2]),
+       mapping = aes(x = SurveyYear, y = pct_cover)) + 
+  geom_point(mapping = aes(color = Nice_num)) + 
+  scale_color_manual(name = 'Plot Number',
+                     values = c(cal_palette('kelp1', 7, type = 'continuous'))) +
+  geom_smooth(color = 'black', method = 'lm', formula = y ~ x) +
+  facet_grid(SiteName ~ Scientific_name) + 
+  # axis and plot labels
+  xlab('Year') + 
+  ylab('Percent Cover') + 
+  ggtitle('Target Taxa: Barnacles') +
+  # colors
+  theme_bw() + 
+  lltheme
+
+ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',zonelist[1], '.png', sep = ''))
+
+targetlist2 <- c(targetlist[1], targetlist[3], targetlist[5], targetlist[4])
+
+for(i in 2:4) {
+  ggplot(data = filter(cabr1990, Zone == zonelist[i] & SpeciesCode %in% targetlist2[i]),
+         mapping = aes(x = SurveyYear, y = pct_cover)) + 
+    geom_point(mapping = aes(color = Nice_num)) + 
+    scale_color_manual(name = 'Plot Number',
+                       values = c(cal_palette('kelp1', 7, type = 'continuous'))) +
+    geom_smooth(color = 'black', method = 'lm', formula = y ~ x) +
+    facet_wrap(~SiteName) + 
+    # axis and plot labels
+    xlab('Year') + 
+    ylab('Percent Cover') + 
+    ggtitle(paste('Target Taxa:', zonenames[i])) +
+    # colors
+    theme_bw() + 
+    lltheme
+
+  ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',zonelist[i], '.png', sep = ''))  
+  
+}
+
+# summarized, but keeps time aspect ()
+
+
+
+
+
 
 
 
