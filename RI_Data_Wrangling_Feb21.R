@@ -149,23 +149,33 @@ remove(target_summary, target_raw, align, spplist)
 
 # lists of commonly filtered-for items
 cabrsites <- c('CAB1', 'CAB2', 'CAB3') 
-targetspp1990 <- c('CHTBAL', 'TETRUB', 'MUSSEL', 'POLPOL', 'SILCOM') 
-targetspp2000 <- c('CHTBAL', 'TETRUB', 'MYTCAL', 'POLPOL', 'SILCOM')
-zonelist <- unique(target$Zone)[1:4]
-zonenames <- c('Balanus/Chthamalus', 'Mussel', 'Silvetia compressa', 'Pollicipes polymerus')
-
+zonelist <- c('CHT', unique(target$Zone)[1:4])
+zonenames <- c('Balanus/Chthamalus', 'Tetraclita rubescens', 'Mussel', 'Silvetia compressa', 'Pollicipes polymerus')
+targetlist <- c('CHTBAL', 'TETRUB', 'MUSSEL', 'SILCOM', 'POLPOL')
 # theme arguments
-lltheme <- theme(text = element_text(size = 10),
+lltheme <- theme(text = element_text(size = 12),
                  # add more space between panels
                  panel.spacing = unit(1, 'lines'),
                  # no background to wrap panels
                  strip.background = element_blank(),
-                 strip.text = element_text(size = 10),
+                 strip.text = element_text(size = 12),
                  # panel labels outside x axis labels
                  strip.placement = 'outside',
                  # adjust x axis labels
-                 axis.text.y = element_text(size = 10),
-                 axis.text.x = element_text(size = 10, angle = 45, hjust = 1))
+                 axis.text.y = element_text(size = 12),
+                 axis.text.x = element_text(size = 12, angle = 45, hjust = 1))
+
+bigtexttheme <- theme(text = element_text(size = 14),
+                 # add more space between panels
+                 panel.spacing = unit(1, 'lines'),
+                 # no background to wrap panels
+                 strip.background = element_blank(),
+                 strip.text = element_text(size = 14),
+                 # panel labels outside x axis labels
+                 strip.placement = 'outside',
+                 # adjust x axis labels
+                 axis.text.y = element_text(size = 14),
+                 axis.text.x = element_text(size = 14, angle = 45, hjust = 1))
 
 ##### qc vis: photoplot #####
 
@@ -181,15 +191,13 @@ cabr1990 <- target1990 %>%
   # make loop eventually...start w single taxa focus
   # emphasize target taxon/a, de-emphasize others
 
-for(i in 1:length(zonelist))
-{
-
+for(i in c(1,3:length(zonelist))){
 ggplot(data = filter(cabr1990, Zone == zonelist[i]),
        mapping = aes(x = SurveyYear, y = pct_cover, 
                 # make target spp last (bottom bar on plots)
                  fill = fct_relevel(Scientific_name, zonenames[i], after = Inf))) +
   # bar stacked by spp group (Scientific_name)
-  geom_bar(stat = 'identity') + 
+  geom_bar(stat = 'identity', width = 1) + 
   # plots in grids by site and plot #
   facet_grid(SiteName ~ Nice_num) + 
   # axis and plot labels
@@ -202,10 +210,11 @@ ggplot(data = filter(cabr1990, Zone == zonelist[i]),
   theme_bw() + 
   lltheme
 
-ggsave(paste('RI_Plots_Mar21/TARGET_Series_by_Plot_',zonelist[i], '.png', sep = ''))
+ggsave(paste('RI_Plots_Mar21/TARGET_Series_by_Plot_',targetlist[i], '.png', sep = ''))
 }
 
 # this vis doesn't work with 2000-aligned data. too many categories, proceed with 1990
+# try forcats to limit # of categories that show up?
 
 ##### qc vis: transect #####
 
@@ -229,7 +238,7 @@ for(i in 1:length(transectnames)) {
 ggplot(data = filter(cabrtransect, Zone == transectnames[1]), 
        mapping = aes(x = SurveyYear, y = pct_cover, 
                      fill = Scientific_name)) + 
-    geom_bar(stat = 'identity') +
+    geom_bar(stat = 'identity', width = 1) +
     facet_grid(SiteName ~ Nice_zone) +
     # axis and plot labels
     xlab('Year') + 
@@ -248,33 +257,10 @@ ggplot(data = filter(cabrtransect, Zone == transectnames[1]),
 ##### summary vis: photoplot #####
 
 # no summarization
-
-# loop across target spp (except barnacles b/c they have 2 spp)
-
-# for barnacles (2 spp - cht/bal and tetrub)
-ggplot(data = filter(cabr1990, Zone == zonelist[1] & SpeciesCode %in% targetlist[1:2]),
-       mapping = aes(x = SurveyYear, y = pct_cover)) + 
-  geom_point(mapping = aes(color = Nice_num)) + 
-  scale_color_manual(name = 'Plot Number',
-                     values = c(cal_palette('kelp1', 7, type = 'continuous'))) +
-  geom_smooth(color = 'black', method = 'lm', formula = y ~ x) +
-  facet_grid(SiteName ~ Scientific_name) + 
-  # axis and plot labels
-  xlab('Year') + 
-  ylab('Percent Cover') + 
-  ggtitle('Target Taxa: Barnacles') +
-  # colors
-  theme_bw() + 
-  lltheme
-
-ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',zonelist[1], '.png', sep = ''))
-
-targetlist2 <- c(targetlist[1], targetlist[3], targetlist[5], targetlist[4])
-
-for(i in 2:4) {
-  ggplot(data = filter(cabr1990, Zone == zonelist[i] & SpeciesCode %in% targetlist2[i]),
+for(i in 1:length(targetlist)) {
+  ggplot(data = filter(cabr1990, Zone == zonelist[i] & SpeciesCode %in% targetlist[i]),
          mapping = aes(x = SurveyYear, y = pct_cover)) + 
-    geom_point(mapping = aes(color = Nice_num)) + 
+    geom_point(mapping = aes(color = Nice_num), size = 2) + 
     scale_color_manual(name = 'Plot Number',
                        values = c(cal_palette('kelp1', 7, type = 'continuous'))) +
     geom_smooth(color = 'black', method = 'lm', formula = y ~ x) +
@@ -285,13 +271,40 @@ for(i in 2:4) {
     ggtitle(paste('Target Taxa:', zonenames[i])) +
     # colors
     theme_bw() + 
-    lltheme
-
-  ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',zonelist[i], '.png', sep = ''))  
+    bigtexttheme
   
+  # save reusulting plot in plots mar21 folder
+  ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',targetlist[i], '.png', sep = ''))  
 }
 
-# summarized, but keeps time aspect ()
+# get real creative - heatmap time series for all (slope = color for future idea?)
+
+  # limit dataset to only target spp in target plot (ex - mussels in mussel plots)
+  tgt_in <- cabr1990 %>% 
+    # make zone list where spp codes == zone names
+    mutate(Zone2 = if_else(Zone == 'CHT', 'CHTBAL',
+                   if_else(Zone == 'MYT', 'MUSSEL',
+                   if_else(Zone == 'SIL', 'SILCOM', 'POLPOL')))) %>%
+    # get only where zone == target spp, and also tetrub in chtbal plots 
+    filter(Zone2 == SpeciesCode | Zone2 == 'CHTBAL' & SpeciesCode == 'TETRUB') %>%
+    # get mean % cover for each type across years
+    group_by(SiteName, SurveyYear, Zone, Scientific_name) %>%
+    summarise(
+      cover_mean = mean(pct_cover),
+      cover_sd = sd(pct_cover))
+  
+  # heatmap
+  ggplot(data = tgt_in, 
+         mapping = aes(x = SurveyYear, y = Scientific_name)) +
+    geom_tile(mapping = aes(fill = cover_mean)) + 
+    facet_wrap(~SiteName) +
+    xlab('Year') +
+    ylab('Target Species') +
+    ggtitle('Average Target Taxa Cover over Time') +
+    coord_cartesian(xlim = c(1990,2020))
+  
+    
+
 
 
 
