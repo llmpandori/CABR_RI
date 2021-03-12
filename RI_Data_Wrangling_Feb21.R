@@ -18,6 +18,7 @@ library(PNWColors)
 library(ggdark)
 library(Hmisc)
 library(calecopal)
+library(viridis)
 
 ##### load data #####
 
@@ -280,7 +281,7 @@ for(i in 1:length(targetlist)) {
 # get real creative - heatmap time series for all (slope = color for future idea?)
 
   # limit dataset to only target spp in target plot (ex - mussels in mussel plots)
-  tgt_in <- cabr1990 %>% 
+  tgt_in_summary <- cabr1990 %>% 
     # make zone list where spp codes == zone names
     mutate(Zone2 = if_else(Zone == 'CHT', 'CHTBAL',
                    if_else(Zone == 'MYT', 'MUSSEL',
@@ -294,17 +295,37 @@ for(i in 1:length(targetlist)) {
       cover_sd = sd(pct_cover))
   
   # heatmap
-  ggplot(data = tgt_in, 
+  ggplot(data = tgt_in_summary, 
          mapping = aes(x = SurveyYear, y = Scientific_name)) +
     geom_tile(mapping = aes(fill = cover_mean)) + 
     facet_wrap(~SiteName) +
     xlab('Year') +
     ylab('Target Species') +
     ggtitle('Average Target Taxa Cover over Time') +
-    coord_cartesian(xlim = c(1990,2020))
+    coord_cartesian(xlim = c(1990,2020)) +
+    #scale_fill_gradientn(colors = wes_palette('Zissou1', type ='continuous'))
+    scale_fill_viridis(option = 'magma') +
+    theme_bw() + 
+    lltheme +
+    theme(axis.text.y = element_text(size = 12, face = 'italic'))
   
-    
+  ggsave('RI_Plots_Mar21/TARGET_Heatmap_bad.png')
 
+##### PCA Try - test if slope of community change =/= 0 over time #####
+
+# try with pollicipes data with 1990 scoring (homogenous plots, 8 taxa)
+
+poll1990 <- ungroup(cabr1990) %>%
+    # filter for only pollicipes plots
+    filter(Zone == 'POL') %>%
+    # select only % cover and ID columns
+    select(SiteName, SurveyYear, Plot_num, Scientific_name, pct_cover) %>%
+    # make align w prior-written code better
+    rename(Pct_cover = pct_cover) %>%
+    # make matrix with spp names as columns and percent cover as rows
+    # preserves year and plot # information
+    pivot_wider(names_from = Scientific_name, values_from = Pct_cover, 
+                values_fn = mean, values_fill = 0)
 
 
 
