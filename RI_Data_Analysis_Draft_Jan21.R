@@ -5,7 +5,7 @@
 # Last edited: 1/20/2021
 ##################################################
 
-##### Load packages and data #####
+##### load packages and data #####
 library(readxl)
 library(tidyverse)
 library(inauguration)
