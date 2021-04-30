@@ -19,13 +19,14 @@ library(ggdark)
 library(Hmisc)
 library(calecopal)
 library(viridis)
+library(broom)
 
 ##### load data #####
 
 # owl limpet data (doesn't need alignment - spp consistent throughout)
-# lim_count <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_count.xlsx')
-# lim_density <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_density_bysize.xlsx')
-# lim_measure <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_measure.xlsx')
+ lim_count <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_count.xlsx')
+ lim_density <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_density_bysize.xlsx')
+ lim_measure <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_LIM_measure.xlsx')
 
 # transect data (doesn't need alignment - spp consistent throughout)
 phy_transect <- read_excel('Raw Data/MEDN_RI_DB_pre2020/qsummarizer_PHY_bytransect.xlsx')
@@ -142,7 +143,6 @@ target2000 <- left_join(target2000, target_summary) %>%
 
 target2000 <- left_join(target2000, spplist)
 
-
 # remove extras
 remove(target_summary, target_raw, align, spplist)
 
@@ -211,7 +211,8 @@ ggplot(data = filter(cabr1990, Zone == zonelist[i]),
   theme_bw() + 
   lltheme
 
-ggsave(paste('RI_Plots_Mar21/TARGET_Series_by_Plot_',targetlist[i], '.png', sep = ''))
+ggsave(paste('RI_Plots_Mar21/TARGET_Series_by_Plot_',targetlist[i], '.png', sep = ''),
+       width = 10)
 }
 
 # this vis doesn't work with 2000-aligned data. too many categories, proceed with 1990
@@ -252,7 +253,8 @@ ggplot(data = filter(cabrtransect, Zone == transectnames[1]),
                               type = 'continuous'), 'gray20')) +
     theme_bw() + 
     lltheme
-  ggsave(paste('RI_Plots_Mar21/TRANSECT_Series_by_Plot_',zonelist[i], '.png', sep = ''))
+  ggsave(paste('RI_Plots_Mar21/TRANSECT_Series_by_Plot_',zonelist[i], '.png', sep = ''),
+         width = 10)
 }
 
 ##### summary vis: photoplot #####
@@ -274,8 +276,9 @@ for(i in 1:length(targetlist)) {
     theme_bw() + 
     bigtexttheme
   
-  # save reusulting plot in plots mar21 folder
-  ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',targetlist[i], '.png', sep = ''))  
+  # save resulting plot in plots mar21 folder
+  ggsave(paste('RI_Plots_Mar21/TARGET_TIMESERIES1_',targetlist[i], '.png', sep = ''),
+         width = 10)  
 }
 
 # get real creative - heatmap time series for all (slope = color for future idea?)
@@ -288,36 +291,85 @@ for(i in 1:length(targetlist)) {
                    if_else(Zone == 'SIL', 'SILCOM', 'POLPOL')))) %>%
     # get only where zone == target spp, and also tetrub in chtbal plots 
     filter(Zone2 == SpeciesCode | Zone2 == 'CHTBAL' & SpeciesCode == 'TETRUB') %>%
+    mutate(Scientific_name2 = if_else(Scientific_name == 'Mussel', 'Mytilus/Septifer',
+                                      Scientific_name)) %>%
     # get mean % cover for each type across years
-    group_by(SiteName, SurveyYear, Zone, Scientific_name) %>%
+    group_by(SiteName, SurveyYear, Zone, Scientific_name2) %>%
     summarise(
       cover_mean = mean(pct_cover),
       cover_sd = sd(pct_cover))
   
+  tgt_in <-   tgt_in_summary <- cabr1990 %>% 
+    # make zone list where spp codes == zone names
+    mutate(Zone2 = if_else(Zone == 'CHT', 'CHTBAL',
+                           if_else(Zone == 'MYT', 'MUSSEL',
+                                   if_else(Zone == 'SIL', 'SILCOM', 'POLPOL')))) %>%
+    # get only where zone == target spp, and also tetrub in chtbal plots 
+    filter(Zone2 == SpeciesCode | Zone2 == 'CHTBAL' & SpeciesCode == 'TETRUB') %>%
+    mutate(Scientific_name2 = if_else(Scientific_name == 'Mussel', 'Mytilus/Septifer',
+                                      Scientific_name))
+
   # heatmap
   ggplot(data = tgt_in_summary, 
-         mapping = aes(x = SurveyYear, y = Scientific_name)) +
+         mapping = aes(x = SurveyYear, y = Scientific_name2)) +
     geom_tile(mapping = aes(fill = cover_mean)) + 
     facet_wrap(~SiteName) +
     xlab('Year') +
     ylab('Target Species') +
     ggtitle('Average Target Taxa Cover over Time') +
     coord_cartesian(xlim = c(1990,2020)) +
-    #scale_fill_gradientn(colors = wes_palette('Zissou1', type ='continuous'))
     scale_fill_viridis(option = 'magma') +
     theme_bw() + 
     lltheme +
     theme(axis.text.y = element_text(size = 12, face = 'italic'))
   
-  ggsave('RI_Plots_Mar21/TARGET_Heatmap_bad.png')
+  ggsave('RI_Plots_Mar21/TARGET_Heatmap_bad.png', width = 10)
 
+  
+# try boxplots w/ star at recent year
+  ggplot(data = tgt_in_summary,
+         mapping = aes(x = cover_mean, y = Scientific_name2)) + 
+    geom_boxplot(mapping = aes(fill = Scientific_name2)) + 
+    geom_point(data = filter(tgt_in_summary, SurveyYear == 2017),
+               mapping = aes(size = 2), pch = 8) +
+    facet_wrap(~SiteName) + 
+    xlab('Percent cover') + 
+    ylab('Target taxa') + 
+    ggtitle('Target Taxa Cover Summary across Sites') + 
+    scale_fill_manual(values = cal_palette('kelp1', 6, 'discrete')) + 
+    dark_theme_bw() + 
+    lltheme + 
+    theme(legend.position = 'none',
+          axis.text.y = element_text(face = 'italic'))
+  
+  ggsave('RI_Plots_Mar21/TARGET_BOXPLOTS.png', width = 10)
+
+  # linreg to accompnay boxplots
+  # make big panel fig w/ same things
+  ggplot(data = tgt_in,
+         mapping = aes(x = SurveyYear, y = pct_cover)) + 
+    geom_point(mapping = aes(color = Nice_num), size = 2) + 
+    scale_color_manual(name = 'Plot Number',
+                       values = c(cal_palette('kelp1', 7, type = 'continuous'))) +
+    geom_smooth(color = 'black', method = 'lm', formula = y ~ x) +
+    facet_grid(Zone2~SiteName, scales = 'free') + 
+    # axis and plot labels
+    xlab('Year') + 
+    ylab('Percent Cover') + 
+    ggtitle('Target Taxa Regressions') +
+    # colors
+    theme_bw() + 
+    lltheme
+  
+  ggsave('RI_Plots_Mar21/TARGET_Mega_Linreg.png', width = 10, height = 10)
+  
 ##### PCA Try - test if slope of community change =/= 0 over time #####
 
 # try with pollicipes data with 1990 scoring (homogenous plots, 8 taxa)
 
-poll1990 <- ungroup(cabr1990) %>%
+pca90 <- ungroup(cabr1990) %>%
     # filter for only pollicipes plots
-    filter(Zone == 'POL') %>%
+    filter(Zone == zonelist[i]) %>%
     # select only % cover and ID columns
     select(SiteName, SurveyYear, Plot_num, Scientific_name, pct_cover) %>%
     # make align w prior-written code better
@@ -327,8 +379,57 @@ poll1990 <- ungroup(cabr1990) %>%
     pivot_wider(names_from = Scientific_name, values_from = Pct_cover, 
                 values_fn = mean, values_fill = 0)
 
-
-
+  pca_fit <- pca90 %>%
+    select(`Bare substrate`:`Silvetia compressa`) %>%
+    prcomp(scale = TRUE)
+  
+  # get eigenvalues
+  evs <- pca_fit %>% tidy(matrix = 'eigenvalues')
+  
+  # get rotation matrix
+  pca_fit %>% tidy(matrix= 'rotation')
+  
+  arrow_style <- arrow(
+    angle = 20, ends = "first", type = "closed", length = grid::unit(8, "pt")
+  )
+  
+  pca_fit %>%
+    tidy(matrix = "rotation") %>%
+    pivot_wider(names_from = "PC", names_prefix = "PC", values_from = "value") %>%
+    ggplot(aes(PC1, PC2)) +
+    geom_segment(xend = 0, yend = 0, arrow = arrow_style) +
+    geom_text(aes(label = column),hjust = 1, nudge_x = 0) +
+    geom_point(data = pca_fit %>% augment(pca90), 
+               mapping = aes(.fittedPC1, .fittedPC2, color = SiteName), size = 3) +
+    # axes
+    ylab(paste('PC2 (' , round(evs$percent[2]*100, digits = 0) , '%)', sep = '')) + 
+    xlab(paste('PC1 (', round(evs$percent[1]*100, digits = 0), '%)', sep = '')) + 
+    ggtitle(paste(zonenames[i],'Plot Communities')) +
+    # theme arguments 
+    theme_bw() +
+    bigtexttheme
+  
+  ggsave(paste('RI_Plots_Mar21/PCA_Explore/TARGET_PCA_',zonenames[i] ,'.png', sep = ''))
+  
+  # 
+  
+# get PC1 and plot over time - is slope = 0? test w/ linear model
+  # linear model 
+  
+  # plot w/ results
+  ggplot(data = pca_fit %>% augment(pca90),
+         mapping = aes(x = SurveyYear, y = .fittedPC1, color = as_factor(Plot_num))) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = 'y ~ x', color = 'black') +
+    facet_wrap(. ~ SiteName) +
+    ylab(paste('PC1 (' , round(evs$percent[1]*100, digits = 0) , '%)', sep = '')) + 
+    xlab('Year') +
+    ggtitle(paste(zonenames[i], ': PCA Regression over Time')) +
+    scale_color_manual(name = 'Plot number', values = cal_palette(name = 'kelp1')) +
+    theme_bw() + 
+    lltheme
+    
+  ggsave(paste('RI_Plots_Mar21/PCA_Explore/TARGET_PCA_Regression',zonenames[i] ,'.png', sep = ''))
 
 
 
